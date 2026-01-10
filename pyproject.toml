@@ -1,0 +1,245 @@
+[project]
+name = "elspeth-simple"
+version = "2.0.0"
+description = "SDA (Sense/Decide/Act) orchestrator for data transformation and decision-making workflows"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+keywords = ["sda", "orchestrator", "sense-decide-act", "llm", "data-transformation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0.1",
+    "jinja2>=3.1.3",
+    "requests>=2.31.0",
+    "httpx>=0.27.0",
+    "openai>=1.12.0",
+    # Azure services
+    "azure-storage-blob>=12.19.0",
+    "azure-identity>=1.15.0",
+    "azure-keyvault-keys>=4.9.0",
+    # Cryptography for RSA signature verification
+    "cryptography>=42.0.0",
+    # Excel support
+    "openpyxl>=3.1.0",
+    # Statistical analysis for metrics plugins
+    "scipy>=1.11.0",
+    # Telemetry
+    "opentelemetry-api>=1.25.0",
+    "opentelemetry-sdk>=1.25.0",
+    "opentelemetry-exporter-otlp>=1.25.0",
+    # Azure Application Insights
+    "applicationinsights>=0.11.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.3.0",
+    "mypy>=1.9.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "hypothesis>=6.0",
+    "ipython>=8.22.0",
+    "ipdb>=0.13.13",
+    "jsonschema>=4.0.0",
+]
+
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+]
+
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+[project.scripts]
+elspeth = "elspeth.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/elspeth-simple"
+Documentation = "https://github.com/yourusername/elspeth-simple/docs"
+Repository = "https://github.com/yourusername/elspeth-simple"
+Issues = "https://github.com/yourusername/elspeth-simple/issues"
+
+[build-system]
+requires = ["hatchling>=1.21.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/elspeth"]
+
+[tool.hatch.version]
+path = "src/elspeth/__init__.py"
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py313"
+line-length = 140
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E402",   # module level import not at top - needed for self-registration pattern
+    "B008",   # do not perform function calls in argument defaults
+    "B010",   # setattr with constant - needed for mypy compliance with protocols
+    "B905",   # zip without explicit strict parameter
+    "N812",   # lowercase imported as non-lowercase
+    "SIM108", # ternary operator - prefer readability in some cases
+    "TC001",  # type checking block - runtime needed for dataclass/protocol checks
+    "RUF012", # ClassVar annotations - not needed for simple class attributes
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # unused imports
+"src/elspeth/core/secrets.py" = ["TC003"]  # Path used at runtime via parameter methods
+
+[tool.ruff.lint.isort]
+known-first-party = ["elspeth"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.black]
+target-version = ["py313"]
+line-length = 140
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | htmlcov
+  | output
+  | __pycache__
+)/
+'''
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Enable gradually
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.*",
+    "numpy.*",
+    "yaml.*",
+    "azure.*",
+    "openai.*",
+    "requests.*",
+    "openpyxl.*",
+    "cryptography.*",
+    "httpx.*",
+    "scipy.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "elspeth.plugins.outputs.repository",
+    "elspeth.plugins.outputs.*",
+    "elspeth.plugins.llms.*",
+    "elspeth.datasources.blob_store",
+]
+ignore_errors = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=elspeth",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["elspeth"]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "@abc.abstractmethod",
+    "class .*\\bProtocol\\):",
+    "@overload",
+]
