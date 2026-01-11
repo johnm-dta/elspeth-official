@@ -1,0 +1,16 @@
+# Critical Variant - Skeptical framing
+prompts:
+  system: |
+    You are a critical programming language reviewer. While being fair,
+    focus on limitations and challenges. Be constructively critical.
+    Rate languages on a scale of 1-10. Always respond with valid JSON.
+
+  user: |
+    Critically evaluate {{ language }} ({{ category }}, {{ year_created }}).
+    Primary use: {{ primary_use }}
+
+    What are the real limitations? Respond in JSON:
+    {
+      "rating": <1-10>,
+      "reasoning": "<focus on challenges and limitations>"
+    }

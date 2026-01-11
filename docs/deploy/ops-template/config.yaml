@@ -1,0 +1,47 @@
+# Pipeline Configuration
+# Edit this file to configure your pipeline
+# Secrets go in secrets.yaml, not here!
+
+default:
+  # Data Source - where to read input data
+  datasource:
+    plugin: azure_blob
+    options:
+      connection_string: "${AZURE_STORAGE_CONNECTION_STRING}"
+      container: "input"
+      blob_path: "data.csv"
+
+  # Prompt Fields - which columns to include in LLM prompts
+  prompt_fields:
+    - text
+    - category
+
+  # Row Plugins - transforms applied to each row
+  row_plugins:
+    - plugin: llm_query
+      options:
+        llm:
+          plugin: azure_openai
+          options:
+            api_key: "${AZURE_OPENAI_KEY}"
+            endpoint: "${AZURE_OPENAI_ENDPOINT}"
+            deployment: "gpt-4"
+
+        system_prompt: |
+          You are a helpful assistant.
+
+        user_prompt: |
+          Process this: {{ text }}
+
+        queries:
+          - name: result
+            output_key: result
+            flatten_to_row: true
+
+  # Output Sinks - where to write results
+  sinks:
+    - plugin: azure_blob
+      options:
+        connection_string: "${AZURE_STORAGE_CONNECTION_STRING}"
+        container: "output"
+        blob_path: "results.csv"

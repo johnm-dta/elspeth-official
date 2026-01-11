@@ -1,0 +1,62 @@
+# Tracing demo with OpenRouter and JSONL/OTEL sinks
+#
+# Usage:
+#   export OPENROUTER_API_KEY=...
+#   export OPENROUTER_MODEL=openai/gpt-4o-mini
+#   elspeth --settings example/tracing/settings.yaml
+#
+# To switch tracing sinks:
+#   - JSONL (default): sink=jsonl writes to example/tracing/output/llm_traces.jsonl
+#   - OTEL: set sink=otel (requires opentelemetry-sdk and exporter configuration)
+
+default:
+  datasource:
+    plugin: local_csv
+    options:
+      path: example/simple/data/sample_input.csv
+
+  llm:
+    plugin: openrouter
+    options:
+      config:
+        api_key_env: OPENROUTER_API_KEY
+        model_env: OPENROUTER_MODEL
+        temperature: 0.2
+        max_tokens: 300
+
+  sinks:
+    - plugin: csv
+      options:
+        path: example/tracing/output/results.csv
+        overwrite: true
+
+  prompts:
+    system: |
+      You are a concise assistant that classifies customer feedback.
+      Reply in JSON with fields: summary, sentiment, themes.
+
+    user: |
+      Feedback: {text}
+      Category: {category}
+      Provide summary, sentiment (positive|neutral|negative), and key themes.
+
+  prompt_fields:
+    - text
+    - category
+
+  # Enable tracing middleware
+  llm_middlewares:
+    - plugin: tracing
+      options:
+        sink: otel               # switch to OTEL; falls back to log if no exporter
+        path: example/tracing/output/llm_traces.jsonl
+        sample_rate: 1.0
+        include_prompts: false
+        include_response: false
+        redact_fields: ["APPID", "email"]
+        redact_value: "[REDACTED]"
+
+  rate_limiter:
+    plugin: adaptive
+    options:
+      requests_per_minute: 20

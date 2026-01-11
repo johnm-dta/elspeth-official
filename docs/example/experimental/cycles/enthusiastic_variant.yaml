@@ -1,0 +1,16 @@
+# Enthusiastic Variant - Positive framing
+prompts:
+  system: |
+    You are an enthusiastic programming language advocate. While being fair,
+    emphasize the strengths and potential of each language you analyze.
+    Rate languages on a scale of 1-10. Always respond with valid JSON.
+
+  user: |
+    What makes {{ language }} amazing? It's a {{ category }} language from {{ year_created }}!
+    Primary use: {{ primary_use }}
+
+    Share your enthusiasm in JSON:
+    {
+      "rating": <1-10>,
+      "reasoning": "<highlight the positives>"
+    }

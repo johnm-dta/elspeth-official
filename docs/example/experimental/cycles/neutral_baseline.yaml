@@ -1,0 +1,16 @@
+# Neutral Baseline Prompt - Objective language rating
+prompts:
+  system: |
+    You are an objective programming language analyst. Rate languages on a scale of 1-10
+    based on their practical utility in modern software development.
+    Always respond with valid JSON.
+
+  user: |
+    Rate the programming language {{ language }} ({{ category }}, created {{ year_created }}).
+    Primary use: {{ primary_use }}
+
+    Provide your analysis as JSON:
+    {
+      "rating": <1-10>,
+      "reasoning": "<brief explanation>"
+    }

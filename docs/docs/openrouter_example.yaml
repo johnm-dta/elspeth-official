@@ -1,0 +1,60 @@
+# Example configuration for using OpenRouter with elspeth-simple
+#
+# Usage:
+# 1. Copy this file to your project directory
+# 2. Update the .env file with your OpenRouter API key
+# 3. Run: elspeth --settings openrouter_example.yaml
+
+# LLM Configuration - OpenRouter
+llm:
+  type: openrouter
+  config:
+    # API key - loaded from environment variable
+    api_key_env: OPENROUTER_API_KEY
+
+    # Model selection - loaded from environment variable or use default
+    model_env: OPENROUTER_MODEL
+
+    # Optional: Site URL for OpenRouter rankings
+    site_url: https://github.com/yourusername/elspeth-simple
+
+    # Optional: App name for OpenRouter rankings
+    app_name: elspeth-simple
+
+    # Generation parameters
+    temperature: 0.7
+    max_tokens: 2000
+
+# Data Source Configuration
+datasource:
+  type: local_csv
+  path: data/input.csv
+
+# Result Sinks Configuration
+sinks:
+  - type: csv
+    path: output/results.csv
+    overwrite: true
+
+# SDA Cycle Configuration
+cycles:
+  - name: example_transformation
+    transform_plugin_defs:
+      - name: json_extract
+        options:
+          field: response_content
+          schema:
+            type: object
+            properties:
+              summary:
+                type: string
+              category:
+                type: string
+
+# Optional: Rate limiting
+rate_limit:
+  calls_per_minute: 10
+
+# Optional: Cost tracking
+cost_tracking:
+  enabled: true

@@ -1,0 +1,215 @@
+# Complex OpenRouter Example - Advanced Template Features
+#
+# This example demonstrates the full power of the Jinja2 template system including:
+# - Loops over multidimensional data
+# - Conditional logic and sections
+# - String filters and transformations
+# - Field aliases for cleaner templates
+# - Complex prompt engineering
+#
+# Usage: elspeth --settings example/complex/settings.yaml
+#
+# New in v3.0:
+# - llm_query plugin encapsulates all LLM configuration
+# - Prompts and queries defined within the plugin
+# - Self-contained plugins can be chained
+
+default:
+  # Data Source Configuration
+  datasource:
+    plugin: local_csv
+    options:
+      path: example/complex/data/products_simple.csv
+
+  # Prompt Field Aliases - Map CSV columns to cleaner template variable names
+  prompt_aliases:
+    product_name: name
+    price_tier: tier
+    sales_trend: trend
+    avg_rating: rating
+    review_count: total_reviews
+    launch_date: launched
+    special_notes: notes
+
+  # Specify which fields from CSV should be available in the template
+  prompt_fields:
+    - product_id
+    - name
+    - category
+    - tier
+    - feature_1
+    - feature_2
+    - feature_3
+    - feature_4
+    - feature_5
+    - review_1_rating
+    - review_1_text
+    - review_1_verified
+    - review_2_rating
+    - review_2_text
+    - review_2_verified
+    - review_3_rating
+    - review_3_text
+    - review_3_verified
+    - competitor_1_name
+    - competitor_1_price
+    - competitor_2_name
+    - competitor_2_price
+    - trend
+    - rating
+    - total_reviews
+    - launched
+    - notes
+
+  # Row Plugins: Transform plugins applied to each row
+  row_plugins:
+    - plugin: llm_query
+      options:
+        # LLM Configuration
+        llm:
+          plugin: openrouter
+          options:
+            config:
+              api_key_env: OPENROUTER_API_KEY
+              model_env: OPENROUTER_MODEL
+              temperature: 0.7
+              max_tokens: 1500
+              app_name: elspeth-complex-example
+
+        # System Prompt - Sets the role and context
+        system_prompt: |
+          You are an expert e-commerce product analyst with deep expertise in:
+          - Customer sentiment analysis
+          - Competitive market positioning
+          - Feature-benefit mapping
+          - Product recommendation strategies
+
+          Your analysis should be data-driven, objective, and actionable. Focus on insights
+          that would help product managers and marketing teams make strategic decisions.
+
+          Always structure your response as valid JSON with clearly defined fields.
+
+        # User Prompt - Complex Jinja2 template with conditionals, loops, and filters
+        user_prompt: |
+          # Product Analysis Request
+
+          ## Product Overview
+          **Product:** {{ name | title }}
+          **Category:** {{ category }}
+          **Price Tier:** {{ tier | upper }}
+          **Current Rating:** {{ rating }}/5.0 ({{ total_reviews }} reviews)
+          {%- if notes %}
+          **Special Notes:** {{ notes }}
+          {%- endif %}
+
+          ## Key Features
+          {%- if feature_1 %}
+          1. {{ feature_1 }}
+          {%- endif %}
+          {%- if feature_2 %}
+          2. {{ feature_2 }}
+          {%- endif %}
+          {%- if feature_3 %}
+          3. {{ feature_3 }}
+          {%- endif %}
+          {%- if feature_4 %}
+          4. {{ feature_4 }}
+          {%- endif %}
+          {%- if feature_5 %}
+          5. {{ feature_5 }}
+          {%- endif %}
+
+          ## Customer Feedback Analysis
+          {%- if review_1_text %}
+
+          Review samples for analysis:
+
+          **Review 1:**
+          - Rating: {{ review_1_rating }}/5 {% if review_1_verified == "true" or review_1_verified == true %}✓ Verified Purchase{% endif %}
+          - Comment: "{{ review_1_text }}"
+          {%- endif %}
+          {%- if review_2_text %}
+
+          **Review 2:**
+          - Rating: {{ review_2_rating }}/5 {% if review_2_verified == "true" or review_2_verified == true %}✓ Verified Purchase{% endif %}
+          - Comment: "{{ review_2_text }}"
+          {%- endif %}
+          {%- if review_3_text %}
+
+          **Review 3:**
+          - Rating: {{ review_3_rating }}/5 {% if review_3_verified == "true" or review_3_verified == true %}✓ Verified Purchase{% endif %}
+          - Comment: "{{ review_3_text }}"
+          {%- endif %}
+
+          ## Competitive Landscape
+          {%- if competitor_1_name %}
+
+          Main competitors in the {{ category }} space:
+          - {{ competitor_1_name }} (${{ competitor_1_price }})
+          {%- if competitor_2_name %}
+          - {{ competitor_2_name }} (${{ competitor_2_price }})
+          {%- endif %}
+          {%- endif %}
+
+          ## Market Performance
+          **Sales Trend:** {{ trend | title }}
+          **Market Position:** {% if rating and rating|float >= 4.5 %}Market Leader{% elif rating and rating|float >= 4.0 %}Strong Performer{% elif rating and rating|float >= 3.5 %}Average Performer{% else %}Needs Improvement{% endif %}
+          **Launch Date:** {{ launched }}
+
+          ---
+
+          ## Analysis Request
+
+          Based on the above product data, provide a comprehensive analysis in JSON format with the following structure:
+
+          ```json
+          {
+            "overall_sentiment": "positive|mixed|negative",
+            "sentiment_score": 0-100,
+            "key_strengths": ["strength 1", "strength 2", ...],
+            "key_weaknesses": ["weakness 1", "weakness 2", ...],
+            "feature_analysis": {
+              "most_praised": ["feature 1", "feature 2"],
+              "most_criticized": ["feature 1", "feature 2"],
+              "missing_features": ["feature 1", "feature 2"]
+            },
+            "competitive_position": {
+              "price_competitiveness": "higher|competitive|lower",
+              "value_proposition": "premium|balanced|budget",
+              "differentiation": "Description of key differentiators"
+            },
+            "market_insights": {
+              "target_audience": "Description of ideal customer",
+              "growth_potential": "high|medium|low",
+              "risk_factors": ["risk 1", "risk 2"]
+            },
+            "recommendations": {
+              "product_team": ["action 1", "action 2"],
+              "marketing_team": ["action 1", "action 2"],
+              "pricing_strategy": "recommendation"
+            },
+            "executive_summary": "2-3 sentence overview of the product's market position and outlook"
+          }
+          ```
+
+          Focus on actionable insights and be specific about what the data tells us.
+
+        # Queries: Define what to execute and where to store results
+        queries:
+          - name: product_analysis
+            inputs: {}  # All fields already in row context from prompt_fields
+            output_key: analysis
+            flatten_to_row: true
+
+        # Rate Limiting
+        rate_limiter:
+          plugin: adaptive
+          options:
+            requests_per_minute: 6
+
+  # Output Configuration
+  sinks:
+    - plugin: csv
+      options:
+        path: example/complex/output/analysis.csv
+        overwrite: true
