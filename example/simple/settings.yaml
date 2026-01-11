@@ -1,0 +1,81 @@
+# Simple OpenRouter Example (v3.0 Schema-Driven)
+# This configuration demonstrates the new plugin-based LLM query pattern:
+# - LLM configuration is encapsulated in the llm_query transform plugin
+# - Each plugin is self-contained with its own LLM client, middleware, etc.
+# - Plugins can be chained for multi-pass LLM workflows
+#
+# Usage: elspeth --settings example/simple/settings.yaml
+#
+# New in v3.0:
+# - llm_query plugin replaces top-level llm:/prompts:/criteria: config
+# - Each llm_query is self-contained and can use different LLMs
+# - Plugins chain via context dict for inter-plugin communication
+
+default:
+  # Data Source: Read from local CSV file
+  datasource:
+    plugin: local_csv
+    options:
+      path: example/simple/data/sample_input.csv
+
+  # Prompt Fields: Which CSV columns to include in the prompt context
+  prompt_fields:
+    - text
+    - category
+
+  # Row Plugins: Transform plugins applied to each row
+  row_plugins:
+    - plugin: llm_query
+      options:
+        # LLM Configuration (self-contained per plugin)
+        llm:
+          plugin: openrouter
+          options:
+            config:
+              api_key_env: OPENROUTER_API_KEY
+              model_env: OPENROUTER_MODEL
+              site_url: https://github.com/yourusername/elspeth-simple
+              app_name: elspeth-simple
+              temperature: 0.7
+              max_tokens: 500
+
+        # Prompts
+        system_prompt: |
+          You are a helpful assistant that analyzes customer feedback.
+          You provide concise summaries and sentiment analysis.
+          Always respond in JSON format.
+
+        user_prompt: |
+          Analyze this customer feedback:
+
+          Text: {{ text }}
+          Original Category: {{ category }}
+
+          Please provide:
+          1. A one-sentence summary
+          2. The sentiment (positive, negative, or neutral)
+          3. Key themes or topics mentioned
+
+          Respond in JSON format with fields: summary, sentiment, themes
+
+        # Queries: Define what to execute and where to store results
+        queries:
+          - name: analysis
+            inputs:
+              text: text
+              category: category
+            output_key: analysis
+            flatten_to_row: true
+
+        # Optional: Rate limiting within this plugin
+        rate_limiter:
+          plugin: adaptive
+          options:
+            requests_per_minute: 10
+
+  # Output Sinks: Write results to CSV
+  sinks:
+    - plugin: csv
+      options:
+        path: example/simple/output/results.csv
+        overwrite: true

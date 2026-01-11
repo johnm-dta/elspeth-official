@@ -1,0 +1,12 @@
+# Suite Configuration for Prompt A/B Testing
+# Compares three prompt styles: neutral (baseline), enthusiastic, and critical
+
+cycles:
+  - name: neutral_baseline
+    is_baseline: true
+
+  - name: enthusiastic_variant
+    is_baseline: false
+
+  - name: critical_variant
+    is_baseline: false

@@ -1,0 +1,105 @@
+# Meta-Plugins Example (v3.0)
+#
+# Demonstrates meta-plugins (FieldCollector, FieldExpander) for data structure transformations.
+# Meta-plugins transform data structure (object<->collection), not content.
+#
+# Pipeline flow:
+# 1. Row plugins process each row (object mode)
+# 2. FieldCollector transposes rows -> collection (object->collection)
+# 3. Multiple analyzers read collection (collection mode)
+# 4. FieldExpander transposes collection -> flat object (collection->object)
+# 5. CSV sink writes flat object to file
+#
+# Usage: elspeth --settings example/meta-plugins/settings.yaml
+
+default:
+  datasource:
+    plugin: local_csv
+    options:
+      path: example/meta-plugins/data/scores.csv
+
+  llm:
+    plugin: openrouter
+    options:
+      config:
+        api_key_env: OPENROUTER_API_KEY
+        model_env: OPENROUTER_MODEL
+        temperature: 0.5
+        max_tokens: 200
+
+  # Row plugins - object mode (row->row transformations)
+  row_plugins:
+    - plugin: score_extractor
+      options:
+        key: baseline_score
+        json_field: baseline_response
+        parse_json_content: true
+
+    - plugin: score_extractor
+      options:
+        key: variant_score
+        json_field: variant_response
+        parse_json_content: true
+
+    - plugin: score_delta
+      # Input: {baseline_score: X, variant_score: Y}
+      # Output: {baseline_score: X, variant_score: Y, delta: Y-X}
+
+  # Aggregation plugins - mixed object/collection modes
+  aggregation_plugins:
+    # META-PLUGIN 1: Row -> Collection (object->collection transition)
+    - plugin: field_collector
+      options:
+        output_key: collected_data
+        exclude_fields: [prompt, baseline_response, variant_response]
+      # Input: Array of row objects
+      # Output: Collection {baseline_score: [...], variant_score: [...], delta: [...]}
+
+    # ANALYZER 1: Collection -> Object (compute stats)
+    - plugin: score_stats_analyzer
+      options:
+        input_key: collected_data
+        score_field: delta
+        output_prefix: delta_stats
+      # Input: Collection from field_collector
+      # Output: {delta_stats_mean: X, delta_stats_std: Y, ...}
+
+    # ANALYZER 2: Collection -> Object (compute distribution)
+    - plugin: score_distribution_analyzer
+      options:
+        input_key: collected_data
+        score_field: delta
+        output_prefix: delta_dist
+      # Input: Same collection (shared with analyzer 1)
+      # Output: {delta_dist_normality_pvalue: X, delta_dist_is_normal: true/false}
+
+    # ANALYZER 3: Collection -> Object (ranking)
+    - plugin: score_variant_ranking_analyzer
+      options:
+        input_key: collected_data
+        score_field: delta
+      # Input: Collection with delta field
+      # Output: {ranking: [...], top_variant: X, top_score: Y}
+
+  # Output sinks
+  sinks:
+    - plugin: csv
+      options:
+        path: example/meta-plugins/output/results.csv
+        overwrite: true
+
+  prompts:
+    system: "You are a helpful rater. Respond with JSON: {\"rating\": <1-10>}"
+    user: "Rate this: {{ text }}"
+
+  prompt_fields: [text]
+
+# Expected output CSV columns:
+# - delta_stats_mean, delta_stats_std, delta_stats_min, delta_stats_max
+# - delta_dist_normality_pvalue, delta_dist_is_normal
+# - ranking, top_variant, top_score
+#
+# Note how meta-plugins enable:
+# - Efficient collection (once for multiple analyzers)
+# - Complex pipelines (collection -> analyzers -> results)
+# - Type-safe transitions (validated by schemas)

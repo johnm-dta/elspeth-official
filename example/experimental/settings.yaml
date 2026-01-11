@@ -1,0 +1,129 @@
+# Experimental Orchestrator Example - Prompt A/B Testing (v3.0)
+#
+# This example demonstrates the experimental orchestrator with:
+# - Multiple prompt strategies (neutral, enthusiastic, critical)
+# - Baseline identification from cycle metadata
+# - Statistical comparison plugins
+# - Automatic ranking of which prompt scores highest
+#
+# New in v3.0:
+# - FieldCollector meta-plugin for explicit data collection
+# - Renamed: *_aggregator -> *_analyzer (separation of concerns)
+# - Collection-mode analytics with validated schemas
+# - Compile-time pipeline validation
+#
+# Usage: elspeth --settings example/experimental/settings.yaml
+
+default:
+  # Use experimental orchestrator for A/B testing
+  orchestrator_type: experimental
+
+  # Data Source
+  datasource:
+    plugin: local_csv
+    options:
+      path: example/experimental/data/programming_languages.csv
+
+  # LLM Configuration
+  llm:
+    plugin: openrouter
+    options:
+      config:
+        api_key_env: OPENROUTER_API_KEY
+        model_env: OPENROUTER_MODEL
+        temperature: 0.7
+        max_tokens: 300
+        app_name: elspeth-experimental-example
+
+  # Output Configuration
+  sinks:
+    - plugin: csv
+      options:
+        path: example/experimental/output/results.csv
+        overwrite: true
+
+  # Prompt Fields
+  prompt_fields:
+    - language
+    - category
+    - year_created
+    - primary_use
+
+  # Transform Plugins - Extract scores from LLM responses
+  row_plugins:
+    - plugin: score_extractor
+      options:
+        key: rating  # Extract "rating" field from JSON responses
+        parse_json_content: true
+        allow_missing: false
+
+  # Aggregation Plugins (v3.0) - Collection + Analysis Pattern
+  aggregation_plugins:
+    # Step 1: Collect row data into columnar format (META-PLUGIN)
+    - plugin: field_collector
+      options:
+        output_key: collected_scores  # Store collection here
+        exclude_fields: [prompt, response, llm_response]  # Exclude verbose fields
+
+    # Step 2: Compute statistics on collected data (ANALYZER)
+    - plugin: score_stats_analyzer  # RENAMED from score_stats_aggregator
+      options:
+        input_key: collected_scores  # Read from FieldCollector output
+        score_field: rating  # Which field to analyze
+        output_prefix: stats  # Prefix for output fields
+
+  # Baseline Comparison Plugins (v3.0) - Compare variants to baseline
+  baseline_comparison_plugins:
+    # Note: These plugins already have schemas in v3.0
+    # They operate on final aggregated results (not collections)
+
+    # 1. Score delta (simple mean difference)
+    - plugin: score_delta
+      options:
+        baseline_field: baseline_mean
+        variant_field: variant_mean
+        output_field: delta
+
+    # 2. Statistical significance (t-tests, effect sizes)
+    - plugin: score_significance
+      options:
+        min_samples: 5
+        equal_var: false  # Welch's t-test
+
+    # 3. Practical significance (meaningful changes)
+    - plugin: score_practical_significance
+      options:
+        threshold: 1.0  # Minimum meaningful difference
+        success_threshold: 7.0  # What counts as "high score"
+        min_samples: 5
+
+  # Rate limiting
+  rate_limiter:
+    plugin: adaptive
+    options:
+      requests_per_minute: 10
+
+  # Suite root directory containing cycles
+  suite_root: example/experimental/cycles
+
+# Migration Notes (v2.x -> v3.0)
+#
+# Key changes in this config:
+# 1. Added field_collector before score_stats_analyzer
+#    - Old: score_stats_aggregator collected data internally
+#    - New: field_collector handles collection, analyzer handles computation
+#
+# 2. Renamed plugins:
+#    - score_stats_aggregator -> score_stats_analyzer
+#    - All *_aggregator plugins -> *_analyzer
+#
+# 3. Added input_key to analyzers:
+#    - Analyzers read from aggregates[input_key] (FieldCollector output)
+#    - Explicit data flow: FieldCollector -> analyzers
+#
+# 4. Schema validation:
+#    - All plugins now have input_schema and output_schema
+#    - Compile-time validation catches misconfigurations
+#    - Runtime validation ensures data integrity
+#
+# See docs/migration-v3.0-metrics.md for full migration guide

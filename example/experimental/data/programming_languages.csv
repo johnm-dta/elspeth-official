@@ -1,0 +1,11 @@
+language,category,year_created,primary_use
+Python,General-purpose,1991,Scripting and data science
+JavaScript,Web,1995,Frontend and backend web development
+TypeScript,Web,2012,Large-scale web applications
+Go,Systems,2009,Cloud services and tooling
+Rust,Systems,2010,Safe systems programming
+Java,General-purpose,1995,Enterprise applications
+C#,General-purpose,2000,Windows and backend services
+Ruby,Scripting,1995,Web applications and automation
+Haskell,Functional,1990,Academic and functional programming
+C++,Systems,1985,Performance-critical applications

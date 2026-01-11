@@ -1,0 +1,11 @@
+{
+  "name": "variant-critical",
+  "description": "Critical prompt highlighting weaknesses",
+  "enabled": true,
+  "temperature": 0.7,
+  "max_tokens": 300,
+  "metadata": {
+    "is_baseline": false,
+    "hypothesis": "Critical prompts that focus on weaknesses will yield lower ratings"
+  }
+}
